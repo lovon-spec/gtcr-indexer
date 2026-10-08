@@ -8,6 +8,8 @@ const httpsAgent = new https.Agent({
   maxSockets: 100,
 });
 
+const RETRY_DELAY_MS = 5000;
+
 async function fetchFromEndpoint(
   endpoint: string,
   ipfsHash: string,
@@ -31,11 +33,11 @@ async function fetchFromEndpoint(
 
 export async function tryFetchIpfsFile(
   tokenId: string,
-  context: EffectContext
+  context: EffectContext,
+  retry = true
 ): Promise<JSON | null> {
   const endpoints = [
     process.env.ENVIO_KLEROS_CDN_LINK || "",
-    "https://cloudflare-ipfs.com/ipfs",
     "https://ipfs.io/ipfs",
   ];
 
@@ -46,6 +48,12 @@ export async function tryFetchIpfsFile(
     if (metadata) {
       return metadata;
     }
+  }
+
+  // Retry once after a short pause to ride out transient gateway errors.
+  if (retry) {
+    await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+    return tryFetchIpfsFile(tokenId, context, false);
   }
 
   context.log.error("Unable to fetch from all endpoints");

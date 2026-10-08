@@ -28,7 +28,8 @@ export const fetchRegistryMetadata = experimental_createEffect(
     input: {
       ipfsHash: S.string,
     },
-    output: S.union([registryMetadataSchema, null]),
+    // Rejects null, so failures cached by older versions are fetched again.
+    output: S.optional(registryMetadataSchema),
     cache: true,
   },
   async ({ input, context }) => {
@@ -44,7 +45,9 @@ export const fetchRegistryMetadata = experimental_createEffect(
       if (err instanceof Error) {
         context.log.error(`Error fetching Registry Metadata: ${err.message}`);
       }
-      return null;
+      // Don't cache failures, so a later run fetches again.
+      context.cache = false;
+      return undefined;
     }
   }
 );

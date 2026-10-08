@@ -20,7 +20,8 @@ export const fetchEvidenceData = experimental_createEffect(
     input: {
       ipfsHash: S.string,
     },
-    output: S.union([evidenceSchema, null]),
+    // Rejects null, so failures cached by older versions are fetched again.
+    output: S.optional(evidenceSchema),
     cache: true,
   },
   async ({ input, context }) => {
@@ -36,7 +37,9 @@ export const fetchEvidenceData = experimental_createEffect(
       if (err instanceof Error) {
         context.log.error(`Error fetching Evidence Data: ${err.message}`);
       }
-      return null;
+      // Don't cache failures, so a later run fetches again.
+      context.cache = false;
+      return undefined;
     }
   }
 );
